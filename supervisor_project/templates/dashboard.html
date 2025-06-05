@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>   
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"
+            integrity="sha384-vl5Hv6OXTuZ1C+UVUOQygaHDaHMb9egvEmmFwNE29AT7kCqtD+3nK+CD5nG1MyKD"
+            crossorigin="anonymous"></script>
+    <meta http-equiv="refresh" content="4">
+    <meta charset="UTF-8">
+    <title>Machine Status Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        table {
+            width: 90%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 12px 20px;
+            text-align: center;
+            border-bottom: 1px solid #ccc;
+        }
+
+        th {
+            background-color: #333;
+            color: #fff;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .status-ok {
+            background-color: #d4edda;
+            color: #155724;
+            font-weight: bold;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            font-weight: bold;
+        }
+
+        .status-idle {
+            background-color: #fff3cd;
+            color: #856404;
+            font-weight: bold;
+        }
+
+        a {
+            color: #0066cc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Machine Status Dashboard</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Machine ID</th>
+                <th>Status</th>
+                <th>Temperature</th>
+                <th>Pressure</th>
+                <th>Last Updated</th>
+            </tr>
+        </thead>
+        <tbody id="machineTableBody">
+            {% for machine_id, data in machines.items() %}
+            <tr>
+                <td>{{ machine_id }}</td>
+                <td class="status-{{ data['status'].lower() }}">{{ data['status'].capitalize() }}</td>
+                <td>{{ data.get('temperature', 'N/A') }}</td>
+                <td>{{ data.get('pressure', 'N/A') }}</td>
+                <td>{{ data.get('timestamp', 'N/A') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Link to trend page -->
+    <p style="text-align: center; margin-top: 30px;">
+        <a href="/trend" style="text-decoration: none; font-weight: bold;">Go to Machine Trend Monitor</a>
+    </p>
+
+    <script>
+        const socket = io();
+
+        socket.on('machine_update', function (data) {
+            for (const [machineId, info] of Object.entries(data)) {
+                const rows = document.querySelectorAll("#machineTableBody tr");
+
+                let updated = false;
+                rows.forEach(row => {
+                    if (row.cells[0].innerText === machineId) {
+                        row.cells[1].innerText = info.status;
+                        row.cells[1].className = 'status-' + info.status.toLowerCase();
+                        row.cells[2].innerText = info.temperature;
+                        row.cells[3].innerText = info.pressure;
+                        row.cells[4].innerText = info.timestamp;
+                        updated = true;
+                    }
+                });
+
+                if (!updated) {
+                    const newRow = document.createElement("tr");
+                    newRow.innerHTML = `
+                        <td>${machineId}</td>
+                        <td class="status-${info.status.toLowerCase()}">${info.status}</td>
+                        <td>${info.temperature}</td>
+                        <td>${info.pressure}</td>
+                        <td>${info.timestamp}</td>
+                    `;
+                    document.getElementById('machineTableBody').appendChild(newRow);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <title>Machine Trend Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        select {
+            display: block;
+            margin: 40px auto 20px auto;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            max-width: 90%;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Machine Trend Monitor</h1>
+
+    <select id="machineSelect">
+        <option selected disabled>Select a machine</option>
+        {% for mid in machines %}
+            <option value="{{ mid }}">{{ mid }}</option>
+        {% endfor %}
+    </select>
+
+    <canvas id="chart" width="1000" height="400"></canvas>
+
+    <script>
+        const ctx = document.getElementById('chart').getContext('2d');
+        let chart;
+
+        document.getElementById('machineSelect').addEventListener('change', function () {
+            const machineId = this.value;
+            fetch(`/history/${machineId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const timestamps = data.map(entry => entry.timestamp);
+                    const temperatures = data.map(entry => entry.temperature);
+                    const pressures = data.map(entry => entry.pressure);
+
+                    if (chart) chart.destroy();
+
+                    chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: timestamps,
+                            datasets: [
+                                {
+                                    label: 'Temperature',
+                                    data: temperatures,
+                                    borderColor: 'red',
+                                    fill: false,
+                                    tension: 0.3
+                                },
+                                {
+                                    label: 'Pressure',
+                                    data: pressures,
+                                    borderColor: 'blue',
+                                    fill: false,
+                                    tension: 0.3
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: `Temperature & Pressure Trends for ${machineId}`
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Timestamp'
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Value'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+        });
+    </script>
+</body>
+</html>
